@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "admin:promote": "node scripts/promote-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

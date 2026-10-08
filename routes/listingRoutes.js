@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { createListing, deleteListing, listListings, updateListing } from "../controllers/listingController.js";
 import { requireAuth } from "../middleware/auth.js";
+import { mongoRateLimit } from "../middleware/rateLimit.js";
 const router = Router();
 router.get("/", listListings);
-router.post("/", requireAuth, createListing);
-router.patch("/:id", requireAuth, updateListing);
-router.delete("/:id", requireAuth, deleteListing);
+router.post("/", requireAuth, mongoRateLimit({ windowMs: 60 * 60 * 1000, max: 12, keyPrefix: "listing-create" }), createListing);
+router.patch("/:id", requireAuth, mongoRateLimit({ windowMs: 60 * 60 * 1000, max: 40, keyPrefix: "listing-update" }), updateListing);
+router.delete("/:id", requireAuth, mongoRateLimit({ windowMs: 60 * 60 * 1000, max: 20, keyPrefix: "listing-delete" }), deleteListing);
 export default router;

@@ -1,8 +1,10 @@
 import { Router } from "express";
-import { login, me, register } from "../controllers/authController.js";
+import { googleSignIn, login, me, register } from "../controllers/authController.js";
 import { requireAuth } from "../middleware/auth.js";
+import { mongoRateLimit } from "../middleware/rateLimit.js";
 const router = Router();
-router.post("/register", register);
-router.post("/login", login);
+router.post("/register", mongoRateLimit({ windowMs: 60 * 60 * 1000, max: 8, keyPrefix: "register" }), register);
+router.post("/login", mongoRateLimit({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: "login" }), login);
+router.post("/google", mongoRateLimit({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: "google-login" }), googleSignIn);
 router.get("/me", requireAuth, me);
 export default router;
