@@ -124,7 +124,7 @@ export async function handleData(req, res, next) {
     const collection = mongoose.connection.collection(table);
     let query = parseFilters(filters);
     const userId = (() => { try { return jwt.verify(req.get("authorization")?.replace(/^Bearer\s+/i, ""), process.env.JWT_SECRET).sub; } catch { return null; } })();
-    const admin = userId && await mongoose.connection.collection("profiles").findOne({ _id: mongoId(userId), roles: "admin" });
+    const admin = userId && await mongoose.connection.collection("profiles").findOne({ _id: mongoId(userId), roles: "admin", account_status: { $ne: "suspended" } });
     if (action !== "select" && !userId) return res.status(401).json({ error: "Sign in to continue." });
     if (action !== "select" && !admin && await mongoose.connection.collection("profiles").findOne({ _id: mongoId(userId), account_status: "suspended" })) return res.status(403).json({ error: "This account is suspended and cannot make changes." });
     if (action !== "select" && req.params.table === "profiles_public") return res.status(403).json({ error: "Public profiles cannot be changed through this route." });
@@ -159,6 +159,7 @@ export async function handleData(req, res, next) {
     let docs = [];
     if (action === "select") {
       const cursor = collection.find(query);
+      if (table === "profiles") cursor.project({ password_hash: 0, google_sub: 0 });
       const limitFilter = filters.find((f) => f.op === "limit");
       if (Object.keys(sort).length) cursor.sort(sort); else cursor.sort({ created_at: -1 });
       if (limitFilter) cursor.limit(Math.min(Number(limitFilter.value), 500));
@@ -338,10 +339,12 @@ export async function handleData(req, res, next) {
     }
     if (action === "update") {
       let updateValues = values || {};
+      if (!admin && ["product_images", "property_images", "conversations", "saved_listings", "saved_searches"].includes(table)) return res.status(403).json({ error: "This record cannot be edited through the marketplace." });
       if (!admin && table === "profiles") updateValues = Object.fromEntries(Object.entries(updateValues).filter(([key]) => ["full_name", "phone", "avatar_url"].includes(key)));
       if (!admin && table === "user_roles") updateValues = { status: "pending", application_data: updateValues.application_data };
       if (!admin && table === "verification_docs") updateValues = Object.fromEntries(Object.entries(updateValues).filter(([key]) => ["doc_type", "storage_path"].includes(key)));
       if (!admin && table === "messages") updateValues = Object.fromEntries(Object.entries(updateValues).filter(([key]) => key === "read_at"));
+      if (!admin && table === "notifications") updateValues = Object.fromEntries(Object.entries(updateValues).filter(([key]) => key === "read_at"));
       if (!admin && table === "reports") return res.status(403).json({ error: "Reports cannot be edited after submission." });
       if (!admin && table === "reviews") return res.status(403).json({ error: "Posted reviews cannot be edited." });
       if (!admin && ["products", "properties", "services"].includes(table)) {
@@ -405,6 +408,7 @@ export async function handleData(req, res, next) {
     }
     if (action === "delete") {
       if (!admin && ["orders", "reviews", "reports", "user_roles", "verification_docs"].includes(table)) return res.status(403).json({ error: "This record cannot be deleted through the marketplace." });
+      if (!admin && ["product_images", "property_images"].includes(table)) return res.status(403).json({ error: "Listing photos cannot be deleted through this route." });
       if (!admin && table === "messages") query.sender_id = userId;
       if (!admin && table === "orders") query = { $and: [query, { $or: [{ buyer_id: userId }, { seller_id: userId }] }] };
       const result = await collection.deleteMany(query); return res.json({ data: null, count: result.deletedCount });

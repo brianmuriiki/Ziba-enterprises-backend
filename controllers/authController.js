@@ -4,7 +4,7 @@ import { createPublicKey } from "node:crypto";
 import { Profile } from "../models/Profile.js";
 
 const publicProfile = (profile) => ({ id: profile.id, full_name: profile.full_name, email: profile.email, phone: profile.phone, avatar_url: profile.avatar_url, roles: profile.roles, account_status: profile.account_status, rating_avg: profile.rating_avg, review_count: profile.review_count, seller_verified: profile.seller_verified, landlord_verified: profile.landlord_verified, service_provider_verified: profile.service_provider_verified, created_at: profile.created_at });
-const issueToken = (profile) => jwt.sign({ sub: profile.id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+const issueToken = (profile) => jwt.sign({ sub: profile.id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
 export async function register(req, res, next) {
   try {
