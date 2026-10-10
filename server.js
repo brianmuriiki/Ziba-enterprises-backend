@@ -14,7 +14,7 @@ import assistantRoutes from "./routes/assistantRoutes.js";
 dotenv.config({ path: new URL("./.env", import.meta.url) });
 
 const app = express();
-const port = Number(process.env.API_PORT || 3000);
+const port = Number(process.env.PORT || process.env.API_PORT || 3000);
 const jwtSecret = process.env.JWT_SECRET;
 const mongoId = (value) => typeof value === "string" && mongoose.isValidObjectId(value) ? new mongoose.Types.ObjectId(value) : value;
 const asClient = (doc) => {
